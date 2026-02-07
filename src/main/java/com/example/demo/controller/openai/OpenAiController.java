@@ -1,4 +1,4 @@
-package com.example.demo.controller;
+package com.example.demo.controller.openai;
 
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.web.bind.annotation.GetMapping;

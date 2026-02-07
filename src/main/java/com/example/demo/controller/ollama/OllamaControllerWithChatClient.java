@@ -1,6 +1,9 @@
-package com.example.demo.controller;
+package com.example.demo.controller.ollama;
 
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.ollama.OllamaChatModel;
 import org.springframework.http.HttpStatus;
@@ -40,18 +43,27 @@ public class OllamaControllerWithChatClient {
     // Inject the ChatClient to interact with the Ollama API
     private ChatClient chatClient;
 
+    ChatMemory chatMemory = MessageWindowChatMemory.builder().build(); // This is an example of creating a ChatMemory instance using the MessageWindowChatMemory implementation. The MessageWindowChatMemory allows the ChatClient to maintain a memory of previous messages in the conversation, which can be useful for generating more contextually relevant responses from the Ollama API.
+
+
 
     // Constructor injection of the ChatClient using the OllamaChatModel to create the ChatClient
-    private OllamaControllerWithChatClient(OllamaChatModel chatModel) { // this is when we have multiple ChatModels and we want to inject the OllamaChatModel separately to create the ChatClient
-        // Create a ChatClient using the OllamaChatModel
-        this.chatClient = ChatClient.create(chatModel);
-    }
+//    private OllamaControllerWithChatClient(OllamaChatModel chatModel) { // this is(i.e chat model) when we have multiple ChatModels and we want to inject the OllamaChatModel separately to create the ChatClient
+//        // Create a ChatClient using the OllamaChatModel
+//        this.chatClient = ChatClient.create(chatModel);
+//    }
 
     // If we have only one ChatModel, we can directly inject the ChatClient without needing to inject the OllamaChatModel separately. This simplifies the constructor and allows us to create the ChatClient
     // using the builder pattern without needing to inject the OllamaChatModel separately.
-//    private OllamaControllerWithChatClient(ChatClient.Builder builder) {
-//        this.chatClient = builder.build();
-//    }
+    private OllamaControllerWithChatClient(ChatClient.Builder builder) {
+//        this.chatClient = builder.build(); // This is the simplest way to create a ChatClient using the builder pattern without adding any advisors or customizations.
+
+        this.chatClient = builder
+                .defaultAdvisors(MessageChatMemoryAdvisor
+                        .builder(chatMemory)
+                        .build()) // This is an example of adding a default advisor to the ChatClient. The MessageChatMemoryAdvisor allows the ChatClient to maintain a memory of previous messages in the conversation, which can be useful for generating more contextually relevant responses from the Ollama API.
+                .build();
+    }
 
     @GetMapping("/test")
     public String test() {

@@ -1,4 +1,4 @@
-package com.example.demo.controller;
+package com.example.demo.controller.ollama;
 
 import org.springframework.ai.ollama.OllamaChatModel;
 import org.springframework.web.bind.annotation.GetMapping;
