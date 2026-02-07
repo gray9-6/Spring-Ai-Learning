@@ -5,14 +5,14 @@ import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.ollama.OllamaChatModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.logging.Logger;
 
 
@@ -48,22 +48,22 @@ public class OllamaControllerWithChatClient {
 
 
     // Constructor injection of the ChatClient using the OllamaChatModel to create the ChatClient
-//    private OllamaControllerWithChatClient(OllamaChatModel chatModel) { // this is(i.e chat model) when we have multiple ChatModels and we want to inject the OllamaChatModel separately to create the ChatClient
-//        // Create a ChatClient using the OllamaChatModel
-//        this.chatClient = ChatClient.create(chatModel);
-//    }
+    private OllamaControllerWithChatClient(OllamaChatModel chatModel) { // this is(i.e chat model) when we have multiple ChatModels and we want to inject the OllamaChatModel separately to create the ChatClient
+        // Create a ChatClient using the OllamaChatModel
+        this.chatClient = ChatClient.create(chatModel);
+    }
 
     // If we have only one ChatModel, we can directly inject the ChatClient without needing to inject the OllamaChatModel separately. This simplifies the constructor and allows us to create the ChatClient
     // using the builder pattern without needing to inject the OllamaChatModel separately.
-    private OllamaControllerWithChatClient(ChatClient.Builder builder) {
-//        this.chatClient = builder.build(); // This is the simplest way to create a ChatClient using the builder pattern without adding any advisors or customizations.
-
-        this.chatClient = builder
-                .defaultAdvisors(MessageChatMemoryAdvisor
-                        .builder(chatMemory)
-                        .build()) // This is an example of adding a default advisor to the ChatClient. The MessageChatMemoryAdvisor allows the ChatClient to maintain a memory of previous messages in the conversation, which can be useful for generating more contextually relevant responses from the Ollama API.
-                .build();
-    }
+//    private OllamaControllerWithChatClient(ChatClient.Builder builder) {
+////        this.chatClient = builder.build(); // This is the simplest way to create a ChatClient using the builder pattern without adding any advisors or customizations.
+//
+//        this.chatClient = builder
+//                .defaultAdvisors(MessageChatMemoryAdvisor
+//                        .builder(chatMemory)
+//                        .build()) // This is an example of adding a default advisor to the ChatClient. The MessageChatMemoryAdvisor allows the ChatClient to maintain a memory of previous messages in the conversation, which can be useful for generating more contextually relevant responses from the Ollama API.
+//                .build();
+//    }
 
     @GetMapping("/test")
     public String test() {
@@ -103,6 +103,40 @@ public class OllamaControllerWithChatClient {
                 .getText();
 
         return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    /*
+        In this We are Learning Prompt Templateing with ChatClient,
+        where we are creating a prompt based on the user input and then sending that prompt to the ChatClient
+        to get a response from the Ollama API. This allows us to create dynamic prompts based on user input and get relevant responses from the Ollama API.
+     */
+    @PostMapping("/recommend")
+    public String  recommend(@RequestParam String type , @RequestParam String year , @RequestParam String lang){
+
+        String template  =  """
+                            I want to watch a {type} movie tonight with good rating,
+                            looking for movies released in {year} and in {lang} language.
+                            Suggest me one specific movie and tell me the cast and length of the movie.
+                            
+                            response should be in below format :
+                            1. Movie name : <movie name>
+                            2. Basic Plot : <basic plot of the movie in one line>
+                            3. Cast : <cast of the movie in one line>
+                            4. Length : <length of the movie in one line>
+                            5. IMDB Rating : <IMDB rating of the movie in one line>
+                            
+                            Don't Give any other information except above mentioned format and details.
+                            """;
+
+        PromptTemplate promptTemplate = new PromptTemplate(template); // in this we are creating a PromptTemplate instance using the template string that contains placeholders for the type, year, and lang parameters. The PromptTemplate allows us to create a prompt by filling in these placeholders with the actual values provided by the user.
+        Prompt prompt = promptTemplate.create(Map.of("type", type, "year", year, "lang", lang)); // in this we are creating a Prompt instance by filling in the placeholders in the PromptTemplate with the actual values provided by the user. The create method takes a map of placeholder names and their corresponding values and returns a Prompt instance that can be sent to the ChatClient.
+
+        String response = chatClient.prompt(prompt)
+                .call()
+                .content();
+
+        return response;
+
     }
 
 }
